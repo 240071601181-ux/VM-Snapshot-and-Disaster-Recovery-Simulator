@@ -178,6 +178,11 @@ class SnapshotMetadataOut(BaseModel):
     os: Optional[str]
     parent_snapshot_id: Optional[str]
     tree_depth: int
+    # Captured simulated state (Phase 6: lets clients display/compare the
+    # frozen VM state without a second request). Additive – older clients
+    # that ignore unknown fields are unaffected.
+    power_state: str = "stopped"
+    hardware: dict[str, Any] = {}
 
     model_config = {"from_attributes": True}
 

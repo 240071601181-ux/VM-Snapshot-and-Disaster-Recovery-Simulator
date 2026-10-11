@@ -7,7 +7,7 @@ interface DeleteConfirmModalProps {
   vm: VirtualMachine | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (vmId: string, confirmationName: string) => void;
+  onConfirm: (vmId: string, confirmationName: string) => void | Promise<void>;
 }
 
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
@@ -18,6 +18,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 }) => {
   const [typedName, setTypedName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!vm) return null;
 
@@ -26,18 +27,21 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   const handleClose = () => {
     setTypedName('');
     setError(null);
+    setSubmitting(false);
     onClose();
   };
 
-  const handleConfirm = (e: React.FormEvent) => {
+  const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isMatch) {
       setError(`Confirmation name must match "${vm.name}" exactly.`);
       return;
     }
 
+    setSubmitting(true);
+    setError(null);
     try {
-      onConfirm(vm.id, typedName.trim());
+      await onConfirm(vm.id, typedName.trim());
       handleClose();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -45,6 +49,8 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       } else {
         setError('Failed to delete virtual machine');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -131,15 +137,15 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <button
             type="submit"
             className="btn btn-danger"
-            disabled={!isMatch}
+            disabled={!isMatch || submitting}
             data-testid="delete-confirm-submit-btn"
             style={{
-              opacity: isMatch ? 1 : 0.5,
-              cursor: isMatch ? 'pointer' : 'not-allowed',
+              opacity: isMatch && !submitting ? 1 : 0.5,
+              cursor: isMatch && !submitting ? 'pointer' : 'not-allowed',
             }}
           >
             <Trash2 size={14} />
-            <span>Delete Virtual Machine</span>
+            <span>{submitting ? 'Deleting…' : 'Delete Virtual Machine'}</span>
           </button>
         </div>
       </form>

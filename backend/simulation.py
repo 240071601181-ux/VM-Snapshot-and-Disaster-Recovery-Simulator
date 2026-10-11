@@ -100,6 +100,37 @@ def parse_hardware(hardware_json: Any) -> dict[str, int]:
     return out
 
 
+def snapshot_out_payload(row: Any) -> dict[str, Any]:
+    """Build a SnapshotMetadataOut-compatible dict from an ORM row.
+
+    Includes the immutably captured power state + hardware so API clients
+    can display and compare frozen state without extra requests.
+    """
+    try:
+        hardware = json.loads(row.hardware_json) if row.hardware_json else {}
+        if not isinstance(hardware, dict):
+            hardware = {}
+    except (json.JSONDecodeError, TypeError):
+        hardware = {}
+    return {
+        "id": row.id,
+        "vm_id": row.vm_id,
+        "vm_name": row.vm_name,
+        "name": row.name,
+        "description": row.description,
+        "created_at": row.created_at,
+        "size_bytes": row.size_bytes,
+        "is_consistent": row.is_consistent,
+        "schema_version": row.schema_version,
+        "environment": row.environment,
+        "os": row.os,
+        "parent_snapshot_id": row.parent_snapshot_id,
+        "tree_depth": row.tree_depth,
+        "power_state": get_power_state(row.state_json),
+        "hardware": hardware,
+    }
+
+
 def compute_diff(
     snapshot_id: str,
     snapshot_vm_id: str,

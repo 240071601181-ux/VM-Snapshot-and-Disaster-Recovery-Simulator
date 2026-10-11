@@ -6,7 +6,7 @@ import { CreateVMOptions } from '../../engine/VMLifecycleEngine';
 interface CreateVMModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (options: CreateVMOptions) => void;
+  onSubmit: (options: CreateVMOptions) => void | Promise<void>;
 }
 
 const OS_OPTIONS = [
@@ -30,6 +30,7 @@ export const CreateVMModal: React.FC<CreateVMModalProps> = ({
   const [memoryGb, setMemoryGb] = useState(8);
   const [diskSizeGb, setDiskSizeGb] = useState(100);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const resetForm = () => {
     setName('');
@@ -40,6 +41,7 @@ export const CreateVMModal: React.FC<CreateVMModalProps> = ({
     setMemoryGb(8);
     setDiskSizeGb(100);
     setError(null);
+    setSubmitting(false);
   };
 
   const handleClose = () => {
@@ -47,15 +49,17 @@ export const CreateVMModal: React.FC<CreateVMModalProps> = ({
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('Please provide a simulated virtual machine name.');
       return;
     }
 
+    setSubmitting(true);
+    setError(null);
     try {
-      onSubmit({
+      await onSubmit({
         name: name.trim(),
         description: description.trim() || undefined,
         os,
@@ -73,6 +77,8 @@ export const CreateVMModal: React.FC<CreateVMModalProps> = ({
       } else {
         setError('Failed to create virtual machine');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -287,9 +293,9 @@ export const CreateVMModal: React.FC<CreateVMModalProps> = ({
           <button type="button" className="btn btn-secondary" onClick={handleClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary" data-testid="create-vm-submit-btn">
+          <button type="submit" className="btn btn-primary" disabled={submitting} data-testid="create-vm-submit-btn">
             <Server size={14} />
-            <span>Create Virtual Machine</span>
+            <span>{submitting ? 'Creating…' : 'Create Virtual Machine'}</span>
           </button>
         </div>
       </form>

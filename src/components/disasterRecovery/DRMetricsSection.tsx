@@ -63,7 +63,11 @@ export const DRMetricsSection: React.FC<DRMetricsSectionProps> = ({
         <MetricCard
           title="Total DR Drills Tested"
           value={metrics.totalRecoveryAttempts}
-          subtext={`Last verified drill: ${new Date(metrics.lastTestedRecoveryDate || '').toLocaleDateString()}`}
+          subtext={
+            metrics.lastTestedRecoveryDate
+              ? `Last verified drill: ${new Date(metrics.lastTestedRecoveryDate).toLocaleDateString()}`
+              : 'No recovery drills recorded yet'
+          }
           icon={<RotateCcw size={18} style={{ color: '#a855f7' }} />}
           testId="metric-dr-attempts"
         />

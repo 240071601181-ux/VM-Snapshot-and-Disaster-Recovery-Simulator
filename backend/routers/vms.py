@@ -24,6 +24,7 @@ from simulation import (
     InvalidTransitionError,
     get_power_state,
     make_state_json,
+    snapshot_out_payload,
     validate_transition,
 )
 
@@ -261,7 +262,7 @@ def list_vm_snapshots(
 
     total_pages = max(1, (total + page_size - 1) // page_size)
     return PaginatedSnapshotResponse(
-        items=[SnapshotMetadataOut.model_validate(r) for r in rows],
+        items=[SnapshotMetadataOut(**snapshot_out_payload(r)) for r in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -321,4 +322,4 @@ def take_vm_snapshot(
         db.rollback()
         raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
-    return SnapshotMetadataOut.model_validate(row)
+    return SnapshotMetadataOut(**snapshot_out_payload(row))

@@ -6,6 +6,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { NavView } from '../../types';
+import { DataSource, DataSourceBadge } from '../common/DataSourceBadge';
 
 interface HeaderProps {
   currentView: NavView;
@@ -14,6 +15,8 @@ interface HeaderProps {
   onSimulateLoadingToggle?: () => void;
   isSimulatingError?: boolean;
   isSimulatingLoading?: boolean;
+  dataSource?: DataSource;
+  onToggleDataSource?: (next: DataSource) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,6 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSimulateLoadingToggle,
   isSimulatingError,
   isSimulatingLoading,
+  dataSource,
+  onToggleDataSource,
 }) => {
   const getHeading = (view: NavView) => {
     switch (view) {
@@ -106,6 +111,11 @@ export const Header: React.FC<HeaderProps> = ({
           <Sparkles size={14} />
           <span>EPHEMERAL ENGINE</span>
         </div>
+
+        {/* Demo vs Live backend data source (Live wires the FastAPI backend) */}
+        {dataSource && (
+          <DataSourceBadge source={dataSource} onToggle={onToggleDataSource} />
+        )}
       </div>
     </header>
   );

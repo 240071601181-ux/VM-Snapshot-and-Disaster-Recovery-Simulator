@@ -21,7 +21,7 @@ from schemas import (
     VMRecordOut,
 )
 from simulation import compute_diff, get_power_state, make_state_json, parse_hardware
-from simulation import apply_snapshot_to_vm, get_vm_lock
+from simulation import apply_snapshot_to_vm, get_vm_lock, snapshot_out_payload
 
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
 
@@ -59,7 +59,7 @@ def list_snapshots(
         raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     total_pages = max(1, (total + page_size - 1) // page_size)
-    items = [SnapshotMetadataOut.model_validate(r) for r in rows]
+    items = [SnapshotMetadataOut(**snapshot_out_payload(r)) for r in rows]
     return PaginatedSnapshotResponse(
         items=items,
         total=total,
@@ -113,7 +113,7 @@ def create_snapshot(
         db.rollback()
         raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
-    return SnapshotMetadataOut.model_validate(row)
+    return SnapshotMetadataOut(**snapshot_out_payload(row))
 
 
 @router.get("/{snapshot_id}", response_model=SnapshotMetadataOut)
@@ -124,7 +124,7 @@ def get_snapshot(snapshot_id: str, db: Session = Depends(get_db)) -> SnapshotMet
         raise HTTPException(status_code=500, detail="Database error occurred") from exc
     if not row:
         raise HTTPException(status_code=404, detail=f"Snapshot '{snapshot_id}' not found")
-    return SnapshotMetadataOut.model_validate(row)
+    return SnapshotMetadataOut(**snapshot_out_payload(row))
 
 
 @router.delete("/{snapshot_id}", status_code=204)

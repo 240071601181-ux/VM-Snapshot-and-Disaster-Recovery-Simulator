@@ -6,18 +6,29 @@ import {
   Clock,
   HardDrive,
   Filter,
+  Plus,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { Snapshot } from '../../types';
 import { EmptyState } from '../common/FeedbackStates';
 
 interface SnapshotHistorySectionProps {
   snapshots: Snapshot[];
+  /** Live-mode actions. Absent in demo mode (buttons hidden, rendering unchanged). */
+  onTakeSnapshotClick?: () => void;
+  onRestoreSnapshot?: (snapshot: Snapshot) => void;
+  onDeleteSnapshot?: (snapshot: Snapshot) => void;
 }
 
 export const SnapshotHistorySection: React.FC<SnapshotHistorySectionProps> = ({
   snapshots,
+  onTakeSnapshotClick,
+  onRestoreSnapshot,
+  onDeleteSnapshot,
 }) => {
   const [selectedVmFilter, setSelectedVmFilter] = useState<string>('all');
+  const liveActions = Boolean(onTakeSnapshotClick || onRestoreSnapshot || onDeleteSnapshot);
 
   const uniqueVms = Array.from(new Set(snapshots.map((s) => s.vmName)));
 
@@ -79,6 +90,17 @@ export const SnapshotHistorySection: React.FC<SnapshotHistorySectionProps> = ({
               </option>
             ))}
           </select>
+          {onTakeSnapshotClick && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={onTakeSnapshotClick}
+              data-testid="take-snapshot-open-btn"
+            >
+              <Plus size={14} />
+              <span>Take Snapshot</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -198,18 +220,47 @@ export const SnapshotHistorySection: React.FC<SnapshotHistorySectionProps> = ({
                     </div>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.3rem',
-                        color: '#34d399',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <CheckCircle2 size={14} /> Ready
-                    </span>
+                    {liveActions ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        {onRestoreSnapshot && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            title={`Restore ${snap.vmName} to ${snap.name}`}
+                            onClick={() => onRestoreSnapshot(snap)}
+                            data-testid={`restore-snapshot-${snap.id}`}
+                            style={{ color: '#38bdf8', padding: '0.3rem 0.4rem' }}
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                        )}
+                        {onDeleteSnapshot && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            title={`Delete snapshot ${snap.name}`}
+                            onClick={() => onDeleteSnapshot(snap)}
+                            data-testid={`delete-snapshot-${snap.id}`}
+                            style={{ color: '#f87171', padding: '0.3rem 0.4rem' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          color: '#34d399',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <CheckCircle2 size={14} /> Ready
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
