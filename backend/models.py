@@ -97,6 +97,27 @@ class RecoveryAttempt(Base):
     notes = Column(Text, nullable=True)
 
 
+class FailureEvent(Base):
+    """
+    Simulation-only record of a controlled failure injected into one VM.
+
+    Only the targeted VM's application state is ever modified; no host
+    commands are executed and no real system files are touched.
+    """
+    __tablename__ = "failure_events"
+
+    id = Column(String, primary_key=True, index=True)
+    vm_id = Column(String, nullable=False, index=True)
+    vm_name = Column(String, nullable=False)
+    scenario = Column(String, nullable=False)  # application_crash | ...
+    failure_type = Column(String, nullable=False)  # frontend-aligned FailureType
+    severity = Column(String, nullable=False, default="error")
+    description = Column(Text, nullable=False, default="")
+    injected_at = Column(String, nullable=False, default=_utcnow_iso)
+    impact_summary = Column(Text, nullable=False, default="")
+    auto_recoverable = Column(Boolean, nullable=False, default=True)
+
+
 class AuditEvent(Base):
     """
     Immutable chronological audit log entry.

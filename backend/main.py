@@ -15,7 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import init_db
-from routers import dashboard, vms, snapshots, recovery, audit
+from routers import dashboard, vms, snapshots, recovery, audit, failures
 
 
 @asynccontextmanager
@@ -97,6 +97,7 @@ app.include_router(vms.router)
 app.include_router(snapshots.router)
 app.include_router(recovery.router)
 app.include_router(audit.router)
+app.include_router(failures.router)
 
 
 @app.get("/health", tags=["health"])

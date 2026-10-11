@@ -12,6 +12,7 @@ Tables created by this module:
   - vm_records          – VM metadata references
   - snapshot_metadata   – Snapshot metadata (NOT real VirtualBox snapshots)
   - recovery_attempts   – Disaster-recovery attempt records
+  - failure_events      – Controlled failure-injection records (simulation only)
   - audit_events        – Immutable chronological audit log
 
 VirtualBox is the source of truth for real VM and snapshot state. This database

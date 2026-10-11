@@ -298,6 +298,93 @@ class PaginatedRecoveryResponse(BaseModel):
     total_pages: int
 
 
+class RecoveryExecuteRequest(BaseModel):
+    """Body for POST /api/recovery/execute – guarded DR workflow (Phase 5)."""
+
+    vm_id: str
+    snapshot_id: str
+    confirmed: bool = False
+    health_check: Literal["auto", "pass", "fail"] = "auto"
+    notes: Optional[str] = None
+
+    @field_validator("vm_id", "snapshot_id")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be blank")
+        return v.strip()
+
+    @field_validator("confirmed")
+    @classmethod
+    def must_confirm(cls, v: bool) -> bool:
+        if v is not True:
+            raise ValueError("Explicit confirmation is required before restoration")
+        return v
+
+
+class HealthCheckOut(BaseModel):
+    passed: bool
+    detail: str
+
+
+class RecoveryExecuteOut(BaseModel):
+    attempt: RecoveryAttemptOut
+    vm: VMRecordOut
+    current_state_before: str
+    target_state: str
+    health_check: HealthCheckOut
+    elapsed_seconds: float
+
+
+# ---------------------------------------------------------------------------
+# Failure Events (Phase 5 – simulation only)
+# ---------------------------------------------------------------------------
+
+FailureScenarioType = Literal[
+    "application_crash",
+    "configuration_corruption",
+    "service_outage",
+    "failed_health_check",
+    "interrupted_recovery",
+]
+
+
+class FailureInjectRequest(BaseModel):
+    vm_id: str
+    scenario: FailureScenarioType
+    description: str = ""
+
+    @field_validator("vm_id")
+    @classmethod
+    def vm_id_not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("vm_id cannot be blank")
+        return v.strip()
+
+
+class FailureEventOut(BaseModel):
+    id: str
+    vm_id: str
+    vm_name: str
+    scenario: str
+    failure_type: str
+    severity: str
+    description: str
+    injected_at: str
+    impact_summary: str
+    auto_recoverable: bool
+
+    model_config = {"from_attributes": True}
+
+
+class PaginatedFailureResponse(BaseModel):
+    items: list[FailureEventOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 # ---------------------------------------------------------------------------
 # Audit Event
 # ---------------------------------------------------------------------------

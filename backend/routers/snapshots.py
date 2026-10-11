@@ -21,6 +21,7 @@ from schemas import (
     VMRecordOut,
 )
 from simulation import compute_diff, get_power_state, make_state_json, parse_hardware
+from simulation import apply_snapshot_to_vm, get_vm_lock
 
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
 
@@ -220,26 +221,29 @@ def restore_snapshot(
             ),
         )
 
-    try:
-        vm = db.query(models.VMRecord).filter(models.VMRecord.id == payload.vm_id).first()
-    except SQLAlchemyError as exc:
-        raise HTTPException(status_code=500, detail="Database error occurred") from exc
-    if not vm:
-        raise HTTPException(status_code=404, detail=f"VM '{payload.vm_id}' not found")
+    # Serialize with concurrent failure/recovery ops on the same VM.
+    with get_vm_lock(payload.vm_id):
+        try:
+            vm = db.query(models.VMRecord).filter(models.VMRecord.id == payload.vm_id).first()
+        except SQLAlchemyError as exc:
+            raise HTTPException(status_code=500, detail="Database error occurred") from exc
+        if not vm:
+            raise HTTPException(status_code=404, detail=f"VM '{payload.vm_id}' not found")
 
-    try:
-        # Deep-copy the frozen payload so the snapshot row stays immutable.
-        restored_state = make_state_json(get_power_state(snap.state_json))
-        restored_hw = json.dumps(parse_hardware(snap.hardware_json))
-        vm.state_json = restored_state
-        vm.hardware_json = restored_hw
-        vm.active_snapshot_id = snap.id
-        vm.updated_at = _utcnow_iso()
-        db.commit()
-        db.refresh(vm)
-    except SQLAlchemyError as exc:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Database error occurred") from exc
+        try:
+            # Deep-copy the frozen payload so the snapshot row stays immutable.
+            restored_state, restored_hw = apply_snapshot_to_vm(
+                snap.state_json, snap.hardware_json
+            )
+            vm.state_json = restored_state
+            vm.hardware_json = restored_hw
+            vm.active_snapshot_id = snap.id
+            vm.updated_at = _utcnow_iso()
+            db.commit()
+            db.refresh(vm)
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     try:
         hardware = json.loads(vm.hardware_json) if vm.hardware_json else {}

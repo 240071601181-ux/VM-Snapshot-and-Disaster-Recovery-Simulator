@@ -1,9 +1,9 @@
 """
-simulation.py – Pure simulation helpers for the Phase 4 lifecycle/snapshot engine.
+simulation.py – Pure simulation helpers for the lifecycle/snapshot/DR engine.
 
-Simulation-only: no hypervisor calls, no VirtualBox interaction. All state is
-application-level metadata stored in the existing tables (VMRecord.state_json,
-SnapshotMetadata.state_json/hardware_json).
+Simulation-only: no hypervisor calls, no VirtualBox interaction, no host
+commands. All state is application-level metadata stored in the database
+(VMRecord.state_json, SnapshotMetadata.state_json/hardware_json).
 
 Transition rules mirror the frontend engine (src/engine/stateTransitions.ts)
 for the supported backend actions: start, stop, restart.
@@ -12,6 +12,7 @@ for the supported backend actions: start, stop, restart.
 from __future__ import annotations
 
 import json
+import threading
 from typing import Any, Literal
 
 PowerState = Literal["running", "stopped", "paused", "crashed", "corrupted"]
@@ -130,3 +131,116 @@ def compute_diff(
         "hardware_diff": {**hw_fields, "has_changes": hw_changed},
         "has_any_differences": power_changed or hw_changed,
     }
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 – failure injection + DR helpers
+# ---------------------------------------------------------------------------
+
+FailureScenario = Literal[
+    "application_crash",
+    "configuration_corruption",
+    "service_outage",
+    "failed_health_check",
+    "interrupted_recovery",
+]
+
+VALID_FAILURE_SCENARIOS: tuple[str, ...] = (
+    "application_crash",
+    "configuration_corruption",
+    "service_outage",
+    "failed_health_check",
+    "interrupted_recovery",
+)
+
+# scenario -> {failure_type, resulting power state (None = no state change),
+#              severity, auto_recoverable, states the VM must currently be in
+#              (None = any state), human description}
+FAILURE_SCENARIOS: dict[str, dict[str, Any]] = {
+    "application_crash": {
+        "failure_type": "service_crash",
+        "result_state": "crashed",
+        "severity": "error",
+        "auto_recoverable": True,
+        "requires_states": ("running", "paused"),
+        "impact": "Simulated guest application crashed; execution state set to 'crashed'.",
+    },
+    "configuration_corruption": {
+        "failure_type": "disk_corruption",
+        "result_state": "corrupted",
+        "severity": "error",
+        "auto_recoverable": False,
+        "requires_states": ("running", "paused", "stopped"),
+        "impact": "Simulated configuration store corrupted; execution state set to 'corrupted'.",
+    },
+    "service_outage": {
+        "failure_type": "power_outage",
+        "result_state": "stopped",
+        "severity": "warning",
+        "auto_recoverable": True,
+        "requires_states": ("running", "paused"),
+        "impact": "Simulated service outage; VM halted to 'stopped'.",
+    },
+    "failed_health_check": {
+        "failure_type": "service_crash",
+        "result_state": None,
+        "severity": "error",
+        "auto_recoverable": True,
+        "requires_states": None,
+        "impact": "Simulated health probe reported failure; VM state unchanged.",
+    },
+    "interrupted_recovery": {
+        "failure_type": "service_crash",
+        "result_state": None,
+        "severity": "error",
+        "auto_recoverable": True,
+        "requires_states": None,
+        "impact": "Simulated recovery interruption; latest in-progress attempt marked failed.",
+    },
+}
+
+HEALTHY_STATES: tuple[str, ...] = ("running", "stopped", "paused")
+
+
+def check_simulated_health(power_state: str) -> tuple[bool, str]:
+    """Deterministic post-restore health probe over simulated state."""
+    if power_state in HEALTHY_STATES:
+        return True, (
+            f"Simulated health check passed: VM reports '{power_state}' "
+            "with responsive simulated guest agent."
+        )
+    return False, (
+        f"Simulated health check failed: VM reports '{power_state}'; "
+        "simulated guest agent unresponsive."
+    )
+
+
+def apply_snapshot_to_vm(
+    snap_state_json: Any, snap_hardware_json: Any
+) -> tuple[str, str]:
+    """Deep-copy a snapshot payload into VM-ready (state_json, hardware_json).
+
+    Pure function shared by the snapshot restore and DR execute paths so both
+    restore paths stay bit-identical and the snapshot row is never mutated.
+    """
+    restored_state = make_state_json(get_power_state(snap_state_json))
+    restored_hw = json.dumps(parse_hardware(snap_hardware_json))
+    return restored_state, restored_hw
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 – per-VM operation locks (concurrency safety)
+# ---------------------------------------------------------------------------
+
+_locks_guard = threading.Lock()
+_vm_locks: dict[str, threading.Lock] = {}
+
+
+def get_vm_lock(vm_id: str) -> threading.Lock:
+    """Return the process-wide mutex serializing mutating ops for one VM."""
+    with _locks_guard:
+        lock = _vm_locks.get(vm_id)
+        if lock is None:
+            lock = threading.Lock()
+            _vm_locks[vm_id] = lock
+        return lock
