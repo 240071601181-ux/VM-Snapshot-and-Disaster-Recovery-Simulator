@@ -1,0 +1,261 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Santhosh\Downloads\virtualization\backend
+plugins: anyio-4.14.2, langsmith-0.11.2
+collected 61 items
+
+tests\test_audit.py FF....FFFF                                           [ 16%]
+tests\test_dashboard.py FFF                                              [ 21%]
+tests\test_db_errors.py ....F.                                           [ 31%]
+tests\test_persistence.py ....                                           [ 37%]
+tests\test_recovery.py FF...FFFFF                                        [ 54%]
+tests\test_snapshots.py FF...FFFFFFF                                     [ 73%]
+tests\test_vms.py FF.....FFF.FFFFF                                       [100%]
+
+================================== FAILURES ===================================
+_______________________ test_create_audit_event_success _______________________
+tests\test_audit.py:11: in test_create_audit_event_success
+    assert resp.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+______________ test_create_audit_event_duplicate_id_returns_409 _______________
+tests\test_audit.py:21: in test_create_audit_event_duplicate_id_returns_409
+    assert resp.status_code == 409
+E   assert 500 == 409
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+________________________ test_list_audit_events_empty _________________________
+tests\test_audit.py:51: in test_list_audit_events_empty
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________ test_list_audit_events_filter_by_vm_id ____________________
+tests\test_audit.py:65: in test_list_audit_events_filter_by_vm_id
+    assert data["total"] == 1
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+____________________ test_list_audit_events_filter_by_type ____________________
+tests\test_audit.py:77: in test_list_audit_events_filter_by_type
+    assert data["total"] == 1
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+______________________ test_list_audit_events_pagination ______________________
+tests\test_audit.py:88: in test_list_audit_events_pagination
+    assert data["total"] == 6
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+___________________________ test_dashboard_empty_db ___________________________
+tests\test_dashboard.py:11: in test_dashboard_empty_db
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________ test_dashboard_counts_after_inserts _____________________
+tests\test_dashboard.py:38: in test_dashboard_counts_after_inserts
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+__________________ test_dashboard_success_rate_all_succeeded __________________
+tests\test_dashboard.py:56: in test_dashboard_success_rate_all_succeeded
+    data = resp.json()
+           ^^^^^^^^^^^
+..\..\..\AppData\Roaming\Python\Python313\site-packages\httpx\_models.py:832: in json
+    return jsonlib.loads(self.content, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\decoder.py:363: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+___________________ test_create_vm_commit_error_returns_500 ___________________
+tests\test_db_errors.py:73: in test_create_vm_commit_error_returns_500
+    body = resp.json()
+           ^^^^^^^^^^^
+..\..\..\AppData\Roaming\Python\Python313\site-packages\httpx\_models.py:832: in json
+    return jsonlib.loads(self.content, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python313\Lib\json\decoder.py:363: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+____________________ test_create_recovery_attempt_success _____________________
+tests\test_recovery.py:11: in test_create_recovery_attempt_success
+    assert resp.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+________________ test_create_recovery_duplicate_id_returns_409 ________________
+tests\test_recovery.py:21: in test_create_recovery_duplicate_id_returns_409
+    assert resp.status_code == 409
+E   assert 500 == 409
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+______________________ test_get_recovery_attempt_success ______________________
+tests\test_recovery.py:46: in test_get_recovery_attempt_success
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_______________ test_get_recovery_attempt_not_found_returns_404 _______________
+tests\test_recovery.py:52: in test_get_recovery_attempt_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+______________________ test_list_recovery_attempts_empty ______________________
+tests\test_recovery.py:57: in test_list_recovery_attempts_empty
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_________________ test_list_recovery_attempts_filter_by_vm_id _________________
+tests\test_recovery.py:71: in test_list_recovery_attempts_filter_by_vm_id
+    assert data["total"] == 1
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+___________________ test_list_recovery_attempts_pagination ____________________
+tests\test_recovery.py:82: in test_list_recovery_attempts_pagination
+    assert data["total"] == 4
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+________________________ test_create_snapshot_success _________________________
+tests\test_snapshots.py:13: in test_create_snapshot_success
+    assert resp.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+________________ test_create_snapshot_duplicate_id_returns_409 ________________
+tests\test_snapshots.py:24: in test_create_snapshot_duplicate_id_returns_409
+    assert resp.status_code == 409
+E   assert 500 == 409
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+__________________________ test_get_snapshot_success __________________________
+tests\test_snapshots.py:49: in test_get_snapshot_success
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________ test_get_snapshot_not_found_returns_404 ___________________
+tests\test_snapshots.py:55: in test_get_snapshot_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+________________________ test_delete_snapshot_success _________________________
+tests\test_snapshots.py:61: in test_delete_snapshot_success
+    assert resp.status_code == 204
+E   assert 500 == 204
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_________________ test_delete_snapshot_not_found_returns_404 __________________
+tests\test_snapshots.py:68: in test_delete_snapshot_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+__________________________ test_list_snapshots_empty __________________________
+tests\test_snapshots.py:73: in test_list_snapshots_empty
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________ test_list_snapshots_filter_by_vm_id _____________________
+tests\test_snapshots.py:87: in test_list_snapshots_filter_by_vm_id
+    assert data["total"] == 1
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+_______________________ test_list_snapshots_pagination ________________________
+tests\test_snapshots.py:98: in test_list_snapshots_pagination
+    assert data["total"] == 5
+           ^^^^^^^^^^^^^
+E   KeyError: 'total'
+___________________________ test_create_vm_success ____________________________
+tests\test_vms.py:14: in test_create_vm_success
+    assert resp.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________ test_create_vm_duplicate_id_returns_409 ___________________
+tests\test_vms.py:26: in test_create_vm_duplicate_id_returns_409
+    assert resp.status_code == 409
+E   assert 500 == 409
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________________ test_get_vm_success _____________________________
+tests\test_vms.py:65: in test_get_vm_success
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+______________________ test_get_vm_not_found_returns_404 ______________________
+tests\test_vms.py:71: in test_get_vm_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________________ test_update_vm_success ____________________________
+tests\test_vms.py:78: in test_update_vm_success
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+____________________ test_update_vm_not_found_returns_404 _____________________
+tests\test_vms.py:92: in test_update_vm_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+___________________________ test_delete_vm_success ____________________________
+tests\test_vms.py:98: in test_delete_vm_success
+    assert resp.status_code == 204
+E   assert 500 == 204
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+____________________ test_delete_vm_not_found_returns_404 _____________________
+tests\test_vms.py:106: in test_delete_vm_not_found_returns_404
+    assert resp.status_code == 404
+E   assert 500 == 404
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________________ test_list_vms_empty _____________________________
+tests\test_vms.py:111: in test_list_vms_empty
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+__________________________ test_list_vms_pagination ___________________________
+tests\test_vms.py:126: in test_list_vms_pagination
+    assert resp.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+============================== warnings summary ===============================
+..\..\..\AppData\Roaming\Python\Python313\site-packages\fastapi\testclient.py:1
+  C:\Users\Santhosh\AppData\Roaming\Python\Python313\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_audit.py::test_create_audit_event_success - assert 500 == 201
+FAILED tests/test_audit.py::test_create_audit_event_duplicate_id_returns_409
+FAILED tests/test_audit.py::test_list_audit_events_empty - assert 500 == 200
+FAILED tests/test_audit.py::test_list_audit_events_filter_by_vm_id - KeyError...
+FAILED tests/test_audit.py::test_list_audit_events_filter_by_type - KeyError:...
+FAILED tests/test_audit.py::test_list_audit_events_pagination - KeyError: 'to...
+FAILED tests/test_dashboard.py::test_dashboard_empty_db - assert 500 == 200
+FAILED tests/test_dashboard.py::test_dashboard_counts_after_inserts - assert ...
+FAILED tests/test_dashboard.py::test_dashboard_success_rate_all_succeeded - j...
+FAILED tests/test_db_errors.py::test_create_vm_commit_error_returns_500 - jso...
+FAILED tests/test_recovery.py::test_create_recovery_attempt_success - assert ...
+FAILED tests/test_recovery.py::test_create_recovery_duplicate_id_returns_409
+FAILED tests/test_recovery.py::test_get_recovery_attempt_success - assert 500...
+FAILED tests/test_recovery.py::test_get_recovery_attempt_not_found_returns_404
+FAILED tests/test_recovery.py::test_list_recovery_attempts_empty - assert 500...
+FAILED tests/test_recovery.py::test_list_recovery_attempts_filter_by_vm_id - ...
+FAILED tests/test_recovery.py::test_list_recovery_attempts_pagination - KeyEr...
+FAILED tests/test_snapshots.py::test_create_snapshot_success - assert 500 == 201
+FAILED tests/test_snapshots.py::test_create_snapshot_duplicate_id_returns_409
+FAILED tests/test_snapshots.py::test_get_snapshot_success - assert 500 == 200
+FAILED tests/test_snapshots.py::test_get_snapshot_not_found_returns_404 - ass...
+FAILED tests/test_snapshots.py::test_delete_snapshot_success - assert 500 == 204
+FAILED tests/test_snapshots.py::test_delete_snapshot_not_found_returns_404 - ...
+FAILED tests/test_snapshots.py::test_list_snapshots_empty - assert 500 == 200
+FAILED tests/test_snapshots.py::test_list_snapshots_filter_by_vm_id - KeyErro...
+FAILED tests/test_snapshots.py::test_list_snapshots_pagination - KeyError: 't...
+FAILED tests/test_vms.py::test_create_vm_success - assert 500 == 201
+FAILED tests/test_vms.py::test_create_vm_duplicate_id_returns_409 - assert 50...
+FAILED tests/test_vms.py::test_get_vm_success - assert 500 == 200
+FAILED tests/test_vms.py::test_get_vm_not_found_returns_404 - assert 500 == 404
+FAILED tests/test_vms.py::test_update_vm_success - assert 500 == 200
+FAILED tests/test_vms.py::test_update_vm_not_found_returns_404 - assert 500 =...
+FAILED tests/test_vms.py::test_delete_vm_success - assert 500 == 204
+FAILED tests/test_vms.py::test_delete_vm_not_found_returns_404 - assert 500 =...
+FAILED tests/test_vms.py::test_list_vms_empty - assert 500 == 200
+FAILED tests/test_vms.py::test_list_vms_pagination - assert 500 == 200
+================== 36 failed, 25 passed, 1 warning in 3.03s ===================

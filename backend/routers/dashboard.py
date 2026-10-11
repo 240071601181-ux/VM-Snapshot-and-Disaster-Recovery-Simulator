@@ -1,0 +1,54 @@
+"""
+routers/dashboard.py – Dashboard summary endpoint.
+"""
+
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from fastapi import APIRouter, Depends
+
+from database import get_db
+import models
+from schemas import DashboardSummary
+
+router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+
+
+@router.get("", response_model=DashboardSummary)
+def get_dashboard(db: Session = Depends(get_db)) -> DashboardSummary:
+    """Return aggregated summary statistics from the metadata database."""
+    total_vms = db.query(func.count(models.VMRecord.id)).scalar() or 0
+    total_snapshots = db.query(func.count(models.SnapshotMetadata.id)).scalar() or 0
+    total_recovery = db.query(func.count(models.RecoveryAttempt.id)).scalar() or 0
+    total_audit = db.query(func.count(models.AuditEvent.id)).scalar() or 0
+
+    successful = (
+        db.query(func.count(models.RecoveryAttempt.id))
+        .filter(models.RecoveryAttempt.status == "succeeded")
+        .scalar() or 0
+    )
+    failed = (
+        db.query(func.count(models.RecoveryAttempt.id))
+        .filter(models.RecoveryAttempt.status == "failed")
+        .scalar() or 0
+    )
+
+    success_rate = (successful / total_recovery * 100) if total_recovery > 0 else 0.0
+
+    # MTTR: mean of rto_seconds for succeeded attempts only
+    mttr_row = (
+        db.query(func.avg(models.RecoveryAttempt.calculated_rto_seconds))
+        .filter(models.RecoveryAttempt.status == "succeeded")
+        .scalar()
+    )
+    mttr = float(mttr_row) if mttr_row is not None else 0.0
+
+    return DashboardSummary(
+        total_vms=total_vms,
+        total_snapshots=total_snapshots,
+        total_recovery_attempts=total_recovery,
+        successful_recoveries=successful,
+        failed_recoveries=failed,
+        success_rate_percent=round(success_rate, 2),
+        mean_time_to_recovery_seconds=round(mttr, 2),
+        total_audit_events=total_audit,
+    )
