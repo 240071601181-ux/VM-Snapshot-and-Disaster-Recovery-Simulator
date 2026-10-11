@@ -2,7 +2,6 @@
 test_recovery.py – Tests for recovery attempt endpoints.
 """
 
-import pytest
 from tests.conftest import SAMPLE_RECOVERY
 
 

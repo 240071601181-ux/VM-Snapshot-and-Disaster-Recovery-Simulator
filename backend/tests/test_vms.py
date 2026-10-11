@@ -5,7 +5,6 @@ Covers: normal create/get/update/delete, duplicate ID (409), blank name (422),
 invalid hardware (422), missing VM (404), and pagination.
 """
 
-import pytest
 from tests.conftest import SAMPLE_VM
 
 

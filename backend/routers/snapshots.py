@@ -3,34 +3,40 @@ routers/snapshots.py – Snapshot metadata + simulated engine endpoints.
 """
 
 import json
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from schemas import (
-    SnapshotMetadataCreate,
-    SnapshotMetadataOut,
     PaginatedSnapshotResponse,
     SnapshotDiffOut,
+    SnapshotMetadataCreate,
+    SnapshotMetadataOut,
     SnapshotRestoreRequest,
     VMRecordOut,
 )
-from simulation import compute_diff, get_power_state, make_state_json, parse_hardware
-from simulation import apply_snapshot_to_vm, get_vm_lock, snapshot_out_payload
+from simulation import (
+    apply_snapshot_to_vm,
+    compute_diff,
+    get_power_state,
+    get_vm_lock,
+    make_state_json,
+    parse_hardware,
+    snapshot_out_payload,
+)
 
 router = APIRouter(prefix="/api/snapshots", tags=["snapshots"])
 
 
 def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def _capture_for_vm(vm: Optional[models.VMRecord]) -> tuple[str, str]:
+def _capture_for_vm(vm: models.VMRecord | None) -> tuple[str, str]:
     """Return (state_json, hardware_json) captured from a VM, or safe defaults."""
     if vm is None:
         return make_state_json("stopped"), "{}"
@@ -43,7 +49,7 @@ def _capture_for_vm(vm: Optional[models.VMRecord]) -> tuple[str, str]:
 
 @router.get("", response_model=PaginatedSnapshotResponse)
 def list_snapshots(
-    vm_id: Optional[str] = Query(default=None),
+    vm_id: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -80,38 +86,40 @@ def create_snapshot(
     if existing:
         raise HTTPException(status_code=409, detail=f"Snapshot with id '{payload.id}' already exists")
 
-    try:
-        # Best-effort capture: when the referenced VM exists, freeze its
-        # current simulated state/hardware immutably into this snapshot.
-        vm = db.query(models.VMRecord).filter(models.VMRecord.id == payload.vm_id).first()
-        captured_state, captured_hw = _capture_for_vm(vm)
-        row = models.SnapshotMetadata(
-            id=payload.id,
-            vm_id=payload.vm_id,
-            vm_name=payload.vm_name,
-            name=payload.name,
-            description=payload.description,
-            created_at=payload.created_at,
-            size_bytes=payload.size_bytes,
-            is_consistent=payload.is_consistent,
-            schema_version=payload.schema_version,
-            environment=payload.environment,
-            os=payload.os,
-            parent_snapshot_id=payload.parent_snapshot_id,
-            tree_depth=payload.tree_depth,
-            state_json=captured_state,
-            hardware_json=captured_hw,
-        )
-        db.add(row)
-        if vm is not None:
-            vm.snapshot_count = (vm.snapshot_count or 0) + 1
-            vm.active_snapshot_id = row.id
-            vm.updated_at = _utcnow_iso()
-        db.commit()
-        db.refresh(row)
-    except SQLAlchemyError as exc:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Database error occurred") from exc
+    # Serialize counter updates with concurrent takes/recoveries on the VM.
+    with get_vm_lock(payload.vm_id):
+        try:
+            # Best-effort capture: when the referenced VM exists, freeze its
+            # current simulated state/hardware immutably into this snapshot.
+            vm = db.query(models.VMRecord).filter(models.VMRecord.id == payload.vm_id).first()
+            captured_state, captured_hw = _capture_for_vm(vm)
+            row = models.SnapshotMetadata(
+                id=payload.id,
+                vm_id=payload.vm_id,
+                vm_name=payload.vm_name,
+                name=payload.name,
+                description=payload.description,
+                created_at=payload.created_at,
+                size_bytes=payload.size_bytes,
+                is_consistent=payload.is_consistent,
+                schema_version=payload.schema_version,
+                environment=payload.environment,
+                os=payload.os,
+                parent_snapshot_id=payload.parent_snapshot_id,
+                tree_depth=payload.tree_depth,
+                state_json=captured_state,
+                hardware_json=captured_hw,
+            )
+            db.add(row)
+            if vm is not None:
+                vm.snapshot_count = (vm.snapshot_count or 0) + 1
+                vm.active_snapshot_id = row.id
+                vm.updated_at = _utcnow_iso()
+            db.commit()
+            db.refresh(row)
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     return SnapshotMetadataOut(**snapshot_out_payload(row))
 
@@ -165,7 +173,7 @@ def _load_snapshot_or_404(snapshot_id: str, db: Session) -> models.SnapshotMetad
 @router.get("/{snapshot_id}/diff", response_model=SnapshotDiffOut)
 def diff_snapshot(
     snapshot_id: str,
-    vm_id: Optional[str] = Query(default=None),
+    vm_id: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> SnapshotDiffOut:
     """Compare a snapshot's saved state against a VM's current simulated state.

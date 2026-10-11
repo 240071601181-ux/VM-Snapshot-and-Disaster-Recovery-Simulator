@@ -11,19 +11,18 @@ metric formulas including empty datasets; UTC ISO 8601 timestamps.
 
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-
-from database import Base, get_db, migrate_legacy_databases
-from main import app
-from tests.conftest import SAMPLE_VM, SAMPLE_SNAPSHOT, SAMPLE_RECOVERY, SAMPLE_AUDIT
+from sqlalchemy.orm import sessionmaker
 
 import models  # noqa: F401 – ensure ORM registration for create_all
+from database import get_db, migrate_legacy_databases
+from main import app
+from tests.conftest import SAMPLE_AUDIT, SAMPLE_RECOVERY, SAMPLE_SNAPSHOT, SAMPLE_VM
 
 
 def _file_client(db_path: str):
@@ -357,4 +356,4 @@ def test_all_timestamps_are_utc_iso8601(client):
     for value in stamps:
         parsed = datetime.fromisoformat(value)
         assert parsed.tzinfo is not None, value
-        assert parsed.utcoffset() == timezone.utc.utcoffset(None), value
+        assert parsed.utcoffset() == UTC.utcoffset(None), value

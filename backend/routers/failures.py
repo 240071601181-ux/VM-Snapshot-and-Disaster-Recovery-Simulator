@@ -7,12 +7,11 @@ Each injection records a FailureEvent plus an audit event atomically.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
@@ -32,7 +31,7 @@ router = APIRouter(prefix="/api/failures", tags=["failures"])
 
 
 def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _audit(
@@ -42,8 +41,8 @@ def _audit(
     title: str,
     details: str,
     severity: str,
-    vm_id: Optional[str] = None,
-    vm_name: Optional[str] = None,
+    vm_id: str | None = None,
+    vm_name: str | None = None,
     now: str,
 ) -> None:
     db.add(
@@ -63,7 +62,7 @@ def _audit(
 
 @router.get("", response_model=PaginatedFailureResponse)
 def list_failure_events(
-    vm_id: Optional[str] = Query(default=None),
+    vm_id: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -130,7 +129,7 @@ def inject_failure(payload: FailureInjectRequest, db: Session = Depends(get_db))
                 ),
             )
 
-        interrupted_notes: Optional[str] = None
+        interrupted_notes: str | None = None
         if payload.scenario == "interrupted_recovery":
             try:
                 running = (

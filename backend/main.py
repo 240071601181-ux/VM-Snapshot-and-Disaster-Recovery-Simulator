@@ -5,17 +5,18 @@ SECURITY NOTE: No passwords or secrets are stored in the database.
 VirtualBox is the source of truth for real VM/snapshot state.
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Any
+from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import init_db
-from routers import dashboard, vms, snapshots, recovery, audit, failures
+from routers import audit, dashboard, failures, recovery, snapshots, vms
 
 
 @asynccontextmanager
@@ -39,10 +40,14 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
+# SECURITY: wildcard origins must NOT be combined with credentials (browsers
+# reject that combination). This simulator API uses no cookies or auth
+# headers, so credentials are disabled and any origin may read it – the
+# intended deployment is a local demo (frontend dev server + local API).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

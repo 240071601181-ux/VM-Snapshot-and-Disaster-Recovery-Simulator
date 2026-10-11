@@ -17,7 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from database import get_db
 from main import app
-from tests.conftest import SAMPLE_VM, SAMPLE_SNAPSHOT, SAMPLE_RECOVERY, SAMPLE_AUDIT
+from tests.conftest import SAMPLE_AUDIT, SAMPLE_RECOVERY, SAMPLE_SNAPSHOT, SAMPLE_VM
 
 
 def _inject_mock_db(mock_db):

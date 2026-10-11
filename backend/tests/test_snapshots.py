@@ -4,7 +4,6 @@ test_snapshots.py – Tests for snapshot metadata endpoints.
 Covers: create, get, delete, vm_id filter, pagination, 404, 409, 422.
 """
 
-import pytest
 from tests.conftest import SAMPLE_SNAPSHOT
 
 

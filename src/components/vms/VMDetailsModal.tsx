@@ -10,6 +10,7 @@ import {
   Play,
   Square,
   RotateCw,
+  Info,
 } from 'lucide-react';
 import { VirtualMachine } from '../../types';
 import { Modal } from '../common/Modal';
@@ -22,6 +23,10 @@ interface VMDetailsModalProps {
   onStartVM?: (id: string) => void;
   onStopVM?: (id: string) => void;
   onRestartVM?: (id: string) => void;
+  /** When true, the VM came from the backend API, which reports power +
+   * hardware only. Guest internals below are then explicitly not reported
+   * rather than silently empty. Demo mode leaves this unset. */
+  liveBackend?: boolean;
 }
 
 export const VMDetailsModal: React.FC<VMDetailsModalProps> = ({
@@ -31,6 +36,7 @@ export const VMDetailsModal: React.FC<VMDetailsModalProps> = ({
   onStartVM,
   onStopVM,
   onRestartVM,
+  liveBackend,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'processes' | 'filesystem' | 'network'>('overview');
 
@@ -269,6 +275,12 @@ export const VMDetailsModal: React.FC<VMDetailsModalProps> = ({
       {/* Tab 2: Processes */}
       {activeTab === 'processes' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {liveBackend && (
+            <div data-testid="live-guest-data-notice" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8rem', color: '#7dd3fc', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '6px', padding: '0.6rem 0.8rem' }}>
+              <Info size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>Live backend data: the API reports power state and hardware only — guest processes are not simulated server-side and are therefore not listed here.</span>
+            </div>
+          )}
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Simulated guest OS processes currently executing in synthetic user-space:
           </div>
@@ -326,6 +338,12 @@ export const VMDetailsModal: React.FC<VMDetailsModalProps> = ({
       {/* Tab 3: Filesystem */}
       {activeTab === 'filesystem' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {liveBackend && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8rem', color: '#7dd3fc', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '6px', padding: '0.6rem 0.8rem' }}>
+              <Info size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>Live backend data: filesystem inodes are not tracked server-side — snapshot restores are verified from the frozen hardware/power image instead.</span>
+            </div>
+          )}
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Tracked virtual filesystem inodes & SHA-256 hashes used to verify snapshot restoration fidelity:
           </div>
@@ -377,6 +395,12 @@ export const VMDetailsModal: React.FC<VMDetailsModalProps> = ({
       {/* Tab 4: Network */}
       {activeTab === 'network' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {liveBackend && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.8rem', color: '#7dd3fc', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '6px', padding: '0.6rem 0.8rem' }}>
+              <Info size={15} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>Live backend data: no virtual network is allocated server-side — link state is derived from power state only.</span>
+            </div>
+          )}
           <div className="spec-grid">
             <div className="spec-item">
               <div className="spec-label">Assigned Simulated IP</div>

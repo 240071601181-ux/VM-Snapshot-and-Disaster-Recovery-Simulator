@@ -93,8 +93,7 @@ export const App: React.FC = () => {
         setSelectedVM(fresh);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [live.vms, isLive]);
+  }, [live.vms, isLive, selectedVM]);
 
   // Leaving Live mode closes live-only dialogs and inspector state.
   useEffect(() => {
@@ -438,6 +437,7 @@ export const App: React.FC = () => {
         onStartVM={handleStartVM}
         onStopVM={handleStopVM}
         onRestartVM={handleRestartVM}
+        liveBackend={isLive}
       />
 
       {/* Create VM Modal Dialog */}

@@ -32,10 +32,10 @@ No passwords or secrets are stored.
 """
 
 import os
-from typing import Generator
+from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./simulator.db")
 
@@ -99,8 +99,9 @@ def migrate_legacy_databases(bind_engine) -> None:
     Idempotent: safe to run on every startup and safe to run repeatedly.
     """
     # Import models here to ensure they are registered on Base.metadata
-    import models  # noqa: F401  – side-effect import to register ORM classes
     from sqlalchemy import inspect, text
+
+    import models  # noqa: F401  – side-effect import to register ORM classes
 
     Base.metadata.create_all(bind=bind_engine)
     with bind_engine.begin() as conn:

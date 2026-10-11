@@ -5,22 +5,21 @@ routers/recovery.py – Recovery attempt endpoints + guarded DR workflow (Phase 
 import json
 import time
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from schemas import (
     HealthCheckOut,
+    PaginatedRecoveryResponse,
     RecoveryAttemptCreate,
     RecoveryAttemptOut,
     RecoveryExecuteOut,
     RecoveryExecuteRequest,
-    PaginatedRecoveryResponse,
     VMRecordOut,
 )
 from simulation import (
@@ -34,10 +33,10 @@ router = APIRouter(prefix="/api/recovery", tags=["recovery"])
 
 
 def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def _rpo_seconds(snapshot_created_at: Optional[str], start_iso: str) -> float:
+def _rpo_seconds(snapshot_created_at: str | None, start_iso: str) -> float:
     try:
         start = datetime.fromisoformat(start_iso)
         created = datetime.fromisoformat(snapshot_created_at or start_iso)
@@ -68,7 +67,7 @@ def _vm_to_out(vm: models.VMRecord) -> VMRecordOut:
 
 @router.get("", response_model=PaginatedRecoveryResponse)
 def list_recovery_attempts(
-    vm_id: Optional[str] = Query(default=None),
+    vm_id: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),

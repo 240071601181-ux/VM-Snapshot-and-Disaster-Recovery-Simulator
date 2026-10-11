@@ -3,26 +3,27 @@ routers/vms.py – CRUD + simulated lifecycle endpoints for VM records metadata.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from schemas import (
+    PaginatedSnapshotResponse,
+    PaginatedVMResponse,
+    SnapshotMetadataOut,
+    SnapshotTakeRequest,
     VMRecordCreate,
     VMRecordOut,
     VMRecordUpdate,
-    PaginatedVMResponse,
-    PaginatedSnapshotResponse,
-    SnapshotMetadataOut,
-    SnapshotTakeRequest,
 )
 from simulation import (
     InvalidTransitionError,
     get_power_state,
+    get_vm_lock,
     make_state_json,
     snapshot_out_payload,
     validate_transition,
@@ -32,7 +33,7 @@ router = APIRouter(prefix="/api/vms", tags=["vms"])
 
 
 def _utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _row_to_out(row: models.VMRecord) -> VMRecordOut:
@@ -275,51 +276,54 @@ def take_vm_snapshot(
     vm_id: str, payload: SnapshotTakeRequest, db: Session = Depends(get_db)
 ) -> SnapshotMetadataOut:
     """Capture an immutable snapshot of the VM's current simulated state."""
-    try:
-        vm = db.query(models.VMRecord).filter(models.VMRecord.id == vm_id).first()
-    except SQLAlchemyError as exc:
-        raise HTTPException(status_code=500, detail="Database error occurred") from exc
-    if not vm:
-        raise HTTPException(status_code=404, detail=f"VM '{vm_id}' not found")
-
-    import uuid as _uuid
-
-    now = _utcnow_iso()
-    try:
-        # Deep-copy current state/hardware so later VM mutations cannot
-        # alter this snapshot (immutability guaranteed at the DB level).
-        captured_state = make_state_json(get_power_state(vm.state_json))
-        captured_hw = vm.hardware_json or "{}"
+    # Serialize with concurrent recovery/failure ops on the same VM so the
+    # captured state and the snapshot_count increment stay consistent.
+    with get_vm_lock(vm_id):
         try:
-            captured_hw = json.dumps(json.loads(captured_hw))
-        except (json.JSONDecodeError, TypeError):
-            captured_hw = "{}"
+            vm = db.query(models.VMRecord).filter(models.VMRecord.id == vm_id).first()
+        except SQLAlchemyError as exc:
+            raise HTTPException(status_code=500, detail="Database error occurred") from exc
+        if not vm:
+            raise HTTPException(status_code=404, detail=f"VM '{vm_id}' not found")
 
-        row = models.SnapshotMetadata(
-            id=f"snap-{_uuid.uuid4().hex[:12]}",
-            vm_id=vm.id,
-            vm_name=vm.name,
-            name=payload.name,
-            description=payload.description,
-            created_at=now,
-            size_bytes=0,
-            is_consistent=payload.is_consistent,
-            schema_version="1.0",
-            environment=vm.environment,
-            os=vm.os,
-            parent_snapshot_id=vm.active_snapshot_id,
-            tree_depth=0,
-            state_json=captured_state,
-            hardware_json=captured_hw,
-        )
-        db.add(row)
-        vm.snapshot_count = (vm.snapshot_count or 0) + 1
-        vm.active_snapshot_id = row.id
-        vm.updated_at = now
-        db.commit()
-        db.refresh(row)
-    except SQLAlchemyError as exc:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Database error occurred") from exc
+        import uuid as _uuid
 
-    return SnapshotMetadataOut(**snapshot_out_payload(row))
+        now = _utcnow_iso()
+        try:
+            # Deep-copy current state/hardware so later VM mutations cannot
+            # alter this snapshot (immutability guaranteed at the DB level).
+            captured_state = make_state_json(get_power_state(vm.state_json))
+            captured_hw = vm.hardware_json or "{}"
+            try:
+                captured_hw = json.dumps(json.loads(captured_hw))
+            except (json.JSONDecodeError, TypeError):
+                captured_hw = "{}"
+
+            row = models.SnapshotMetadata(
+                id=f"snap-{_uuid.uuid4().hex[:12]}",
+                vm_id=vm.id,
+                vm_name=vm.name,
+                name=payload.name,
+                description=payload.description,
+                created_at=now,
+                size_bytes=0,
+                is_consistent=payload.is_consistent,
+                schema_version="1.0",
+                environment=vm.environment,
+                os=vm.os,
+                parent_snapshot_id=vm.active_snapshot_id,
+                tree_depth=0,
+                state_json=captured_state,
+                hardware_json=captured_hw,
+            )
+            db.add(row)
+            vm.snapshot_count = (vm.snapshot_count or 0) + 1
+            vm.active_snapshot_id = row.id
+            vm.updated_at = now
+            db.commit()
+            db.refresh(row)
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Database error occurred") from exc
+
+        return SnapshotMetadataOut(**snapshot_out_payload(row))

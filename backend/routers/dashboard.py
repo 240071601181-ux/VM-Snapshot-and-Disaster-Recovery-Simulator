@@ -2,13 +2,13 @@
 routers/dashboard.py – Dashboard summary endpoint.
 """
 
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from database import get_db
 import models
+from database import get_db
 from schemas import DashboardSummary, RecoveryAttemptOut
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])

@@ -2,7 +2,6 @@
 test_audit.py – Tests for audit event endpoints.
 """
 
-import pytest
 from tests.conftest import SAMPLE_AUDIT
 
 

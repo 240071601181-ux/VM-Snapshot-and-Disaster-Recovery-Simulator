@@ -1,14 +1,16 @@
 """Diagnostic: find out what 500 error is actually happening."""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/..')
 
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+import models  # noqa
 from database import Base, get_db
 from main import app
-from fastapi.testclient import TestClient
-import models  # noqa
 
 engine = create_engine('sqlite:///:memory:', connect_args={'check_same_thread': False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -36,6 +38,6 @@ try:
     })
     print("Status:", resp.status_code)
     print("Body:", resp.json())
-except Exception as e:
+except Exception:
     import traceback
     traceback.print_exc()

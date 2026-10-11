@@ -194,7 +194,7 @@ describe('SnapshotEngine Domain Engine', () => {
       const { snapshot } = SnapshotEngine.createSnapshot(vm, { name: 'Schema Test' });
 
       // Simulate a future unsupported schema
-      (snapshot as any).schemaVersion = '99.0';
+      (snapshot as unknown as Record<string, unknown>).schemaVersion = '99.0';
 
       expect(() => {
         SnapshotEngine.restoreSnapshot(snapshot, vm);
@@ -211,8 +211,8 @@ describe('SnapshotEngine Domain Engine', () => {
         name: 'Broken Snapshot',
         description: '',
         createdAt: new Date().toISOString(),
-        vmConfig: null as any, // missing hardware config
-        capturedState: null as any,
+        vmConfig: null as unknown as Snapshot['vmConfig'], // missing hardware config
+        capturedState: null as unknown as Snapshot['capturedState'],
         sizeBytes: 100,
         isConsistent: true,
         treeDepth: 0,

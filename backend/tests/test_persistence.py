@@ -9,14 +9,13 @@ client (simulating a process restart with the same DB file).
 import os
 import tempfile
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from database import Base, get_db
 from main import app
-from tests.conftest import SAMPLE_VM, SAMPLE_SNAPSHOT, SAMPLE_RECOVERY, SAMPLE_AUDIT
+from tests.conftest import SAMPLE_AUDIT, SAMPLE_SNAPSHOT, SAMPLE_VM
 
 
 def _build_client(db_path: str):

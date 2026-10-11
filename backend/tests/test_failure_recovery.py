@@ -7,12 +7,13 @@ audit logging, history preservation, and DB-error handling.
 """
 
 import threading
+from unittest.mock import MagicMock
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import get_db
 from main import app
 from tests.conftest import SAMPLE_VM
-from unittest.mock import MagicMock
-from sqlalchemy.exc import SQLAlchemyError
 
 
 def _vm(client, vm_id="vm-dr-01", **overrides):

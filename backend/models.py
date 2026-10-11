@@ -11,7 +11,8 @@ in a future integration phase.
 No passwords or secrets are stored in any table.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from sqlalchemy import Boolean, Column, Float, Integer, String, Text
 
 from database import Base
@@ -19,7 +20,7 @@ from database import Base
 
 def _utcnow_iso() -> str:
     """Return current UTC time as ISO 8601 string."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class VMRecord(Base):

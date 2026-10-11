@@ -2,11 +2,10 @@
 routers/audit.py – Audit event endpoints.
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
@@ -17,8 +16,8 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 @router.get("", response_model=PaginatedAuditResponse)
 def list_audit_events(
-    vm_id: Optional[str] = Query(default=None),
-    type: Optional[str] = Query(default=None),
+    vm_id: str | None = Query(default=None),
+    type: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),

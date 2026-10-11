@@ -1,6 +1,6 @@
 """Run diagnostic and save output cleanly."""
-import sys
 import os
+import sys
 import traceback
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -10,6 +10,7 @@ try:
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+
     import models  # noqa
     from database import Base, get_db
     from main import app

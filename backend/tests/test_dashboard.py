@@ -2,8 +2,7 @@
 test_dashboard.py – Tests for dashboard summary endpoint.
 """
 
-import pytest
-from tests.conftest import SAMPLE_VM, SAMPLE_SNAPSHOT, SAMPLE_RECOVERY, SAMPLE_AUDIT
+from tests.conftest import SAMPLE_AUDIT, SAMPLE_RECOVERY, SAMPLE_SNAPSHOT, SAMPLE_VM
 
 
 def test_dashboard_empty_db(client):

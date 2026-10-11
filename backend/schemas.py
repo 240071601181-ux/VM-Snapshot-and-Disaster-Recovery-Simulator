@@ -8,8 +8,8 @@ All timestamps are UTC ISO 8601 strings.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Literal, Optional
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -22,7 +22,7 @@ def _new_id() -> str:
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 EnvironmentType = Literal["production", "staging", "development"]
@@ -75,7 +75,7 @@ class VMRecordCreate(BaseModel):
     os: str = ""
     hardware: HardwareSchema
     power_state: PowerStateType = "stopped"
-    active_snapshot_id: Optional[str] = None
+    active_snapshot_id: str | None = None
     snapshot_count: int = Field(default=0, ge=0)
     created_at: str = Field(default_factory=_utcnow)
     updated_at: str = Field(default_factory=_utcnow)
@@ -89,18 +89,18 @@ class VMRecordCreate(BaseModel):
 
 
 class VMRecordUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    environment: Optional[EnvironmentType] = None
-    os: Optional[str] = None
-    hardware: Optional[HardwareSchema] = None
-    active_snapshot_id: Optional[str] = None
-    snapshot_count: Optional[int] = Field(default=None, ge=0)
+    name: str | None = None
+    description: str | None = None
+    environment: EnvironmentType | None = None
+    os: str | None = None
+    hardware: HardwareSchema | None = None
+    active_snapshot_id: str | None = None
+    snapshot_count: int | None = Field(default=None, ge=0)
     updated_at: str = Field(default_factory=_utcnow)
 
     @field_validator("name")
     @classmethod
-    def name_not_blank(cls, v: Optional[str]) -> Optional[str]:
+    def name_not_blank(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
             raise ValueError("VM name cannot be blank")
         return v.strip() if v else v
@@ -114,7 +114,7 @@ class VMRecordOut(BaseModel):
     os: str
     hardware: dict[str, Any]
     power_state: str = "stopped"
-    active_snapshot_id: Optional[str]
+    active_snapshot_id: str | None
     snapshot_count: int
     created_at: str
     updated_at: str
@@ -144,9 +144,9 @@ class SnapshotMetadataCreate(BaseModel):
     size_bytes: int = Field(default=0, ge=0)
     is_consistent: bool = True
     schema_version: str = "1.0"
-    environment: Optional[EnvironmentType] = None
-    os: Optional[str] = None
-    parent_snapshot_id: Optional[str] = None
+    environment: EnvironmentType | None = None
+    os: str | None = None
+    parent_snapshot_id: str | None = None
     tree_depth: int = Field(default=0, ge=0)
 
     @field_validator("name")
@@ -174,9 +174,9 @@ class SnapshotMetadataOut(BaseModel):
     size_bytes: int
     is_consistent: bool
     schema_version: str
-    environment: Optional[str]
-    os: Optional[str]
-    parent_snapshot_id: Optional[str]
+    environment: str | None
+    os: str | None
+    parent_snapshot_id: str | None
     tree_depth: int
     # Captured simulated state (Phase 6: lets clients display/compare the
     # frozen VM state without a second request). Additive – older clients
@@ -258,16 +258,16 @@ class RecoveryAttemptCreate(BaseModel):
     id: str = Field(default_factory=_new_id)
     vm_id: str
     vm_name: str
-    failure_event_id: Optional[str] = None
+    failure_event_id: str | None = None
     target_snapshot_id: str
     target_snapshot_name: str
     attempted_at: str = Field(default_factory=_utcnow)
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
     status: RecoveryStatusType = "initiated"
     calculated_rto_seconds: float = Field(default=0.0, ge=0)
     calculated_rpo_seconds: float = Field(default=0.0, ge=0)
     restored_checksum_match: bool = False
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("vm_id", "target_snapshot_id", "target_snapshot_name", "vm_name")
     @classmethod
@@ -281,16 +281,16 @@ class RecoveryAttemptOut(BaseModel):
     id: str
     vm_id: str
     vm_name: str
-    failure_event_id: Optional[str]
+    failure_event_id: str | None
     target_snapshot_id: str
     target_snapshot_name: str
     attempted_at: str
-    completed_at: Optional[str]
+    completed_at: str | None
     status: str
     calculated_rto_seconds: float
     calculated_rpo_seconds: float
     restored_checksum_match: bool
-    notes: Optional[str]
+    notes: str | None
 
     model_config = {"from_attributes": True}
 
@@ -310,7 +310,7 @@ class RecoveryExecuteRequest(BaseModel):
     snapshot_id: str
     confirmed: bool = False
     health_check: Literal["auto", "pass", "fail"] = "auto"
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("vm_id", "snapshot_id")
     @classmethod
@@ -398,8 +398,8 @@ class AuditEventCreate(BaseModel):
     id: str = Field(default_factory=_new_id)
     timestamp: str = Field(default_factory=_utcnow)
     type: AuditEventTypeStr
-    vm_id: Optional[str] = None
-    vm_name: Optional[str] = None
+    vm_id: str | None = None
+    vm_name: str | None = None
     title: str
     details: str
     operator: str
@@ -417,8 +417,8 @@ class AuditEventOut(BaseModel):
     id: str
     timestamp: str
     type: str
-    vm_id: Optional[str]
-    vm_name: Optional[str]
+    vm_id: str | None
+    vm_name: str | None
     title: str
     details: str
     operator: str
