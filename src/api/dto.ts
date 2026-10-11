@@ -93,6 +93,9 @@ export interface BackendDashboard {
   success_rate_percent: number;
   mean_time_to_recovery_seconds: number;
   total_audit_events: number;
+  total_failure_events: number;
+  in_progress_recoveries: number;
+  recent_recovery_attempts: BackendRecoveryAttempt[];
 }
 
 export interface BackendSnapshotDiff {

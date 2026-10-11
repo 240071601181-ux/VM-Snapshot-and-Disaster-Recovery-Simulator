@@ -69,6 +69,9 @@ describe('backend mappers', () => {
       success_rate_percent: 50,
       mean_time_to_recovery_seconds: 100,
       total_audit_events: 0,
+      total_failure_events: 0,
+      in_progress_recoveries: 1,
+      recent_recovery_attempts: [],
     };
     const attempts: RecoveryAttempt[] = [
       {

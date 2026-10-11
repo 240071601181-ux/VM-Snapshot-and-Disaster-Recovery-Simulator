@@ -448,3 +448,7 @@ class DashboardSummary(BaseModel):
     success_rate_percent: float
     mean_time_to_recovery_seconds: float
     total_audit_events: int
+    # Phase 7 – derived from recorded events, never hardcoded:
+    total_failure_events: int = 0
+    in_progress_recoveries: int = 0
+    recent_recovery_attempts: list[RecoveryAttemptOut] = []
