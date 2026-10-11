@@ -39,7 +39,7 @@ def list_recovery_attempts(
             .all()
         )
     except SQLAlchemyError as exc:
-        raise HTTPException(status_code=500, detail=f"Database error: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     total_pages = max(1, (total + page_size - 1) // page_size)
     items = [RecoveryAttemptOut.model_validate(r) for r in rows]
@@ -56,7 +56,10 @@ def list_recovery_attempts(
 def create_recovery_attempt(
     payload: RecoveryAttemptCreate, db: Session = Depends(get_db)
 ) -> RecoveryAttemptOut:
-    existing = db.query(models.RecoveryAttempt).filter(models.RecoveryAttempt.id == payload.id).first()
+    try:
+        existing = db.query(models.RecoveryAttempt).filter(models.RecoveryAttempt.id == payload.id).first()
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
     if existing:
         raise HTTPException(status_code=409, detail=f"Recovery attempt '{payload.id}' already exists")
 
@@ -81,7 +84,7 @@ def create_recovery_attempt(
         db.refresh(row)
     except SQLAlchemyError as exc:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     return RecoveryAttemptOut.model_validate(row)
 
@@ -91,7 +94,7 @@ def get_recovery_attempt(attempt_id: str, db: Session = Depends(get_db)) -> Reco
     try:
         row = db.query(models.RecoveryAttempt).filter(models.RecoveryAttempt.id == attempt_id).first()
     except SQLAlchemyError as exc:
-        raise HTTPException(status_code=500, detail=f"Database error: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
     if not row:
         raise HTTPException(status_code=404, detail=f"Recovery attempt '{attempt_id}' not found")
     return RecoveryAttemptOut.model_validate(row)

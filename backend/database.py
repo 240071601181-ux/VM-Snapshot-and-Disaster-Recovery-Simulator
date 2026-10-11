@@ -57,6 +57,25 @@ def init_db() -> None:
     # Import models here to ensure they are registered on Base.metadata
     import models  # noqa: F401  – side-effect import to register ORM classes
     Base.metadata.create_all(bind=engine)
+    _migrate_snapshot_capture_columns()
+
+
+def _migrate_snapshot_capture_columns() -> None:
+    """Phase 4 lightweight migration: add snapshot state capture columns.
+
+    create_all() does not ALTER pre-existing tables, so file databases created
+    before Phase 4 need these columns added explicitly. Fresh/test databases
+    already include them via metadata. Safe to run repeatedly.
+    """
+    from sqlalchemy import inspect, text
+
+    with engine.begin() as conn:
+        if "snapshot_metadata" not in inspect(conn).get_table_names():
+            return
+        existing = {c["name"] for c in inspect(conn).get_columns("snapshot_metadata")}
+        for column in ("state_json", "hardware_json"):
+            if column not in existing:
+                conn.execute(text(f"ALTER TABLE snapshot_metadata ADD COLUMN {column} TEXT DEFAULT '{{}}'"))
 
 
 def get_db() -> Generator[Session, None, None]:

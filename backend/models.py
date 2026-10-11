@@ -51,6 +51,11 @@ class SnapshotMetadata(Base):
     NOTE: This is NOT a real VirtualBox snapshot record. It stores metadata
     about snapshots managed within the simulator. Mark demo/injected records
     with '[MOCK SIMULATION DATA]' prefix in the description field.
+
+    state_json:    JSON-serialised capture of the VM power state at take time
+                   (e.g. {"power_state": "running"}). Deep-copied on capture so
+                   later VM mutations cannot alter this snapshot (immutable).
+    hardware_json: JSON-serialised SimulatedVirtualHardware captured at take time.
     """
     __tablename__ = "snapshot_metadata"
 
@@ -67,6 +72,8 @@ class SnapshotMetadata(Base):
     os = Column(String, nullable=True)
     parent_snapshot_id = Column(String, nullable=True)
     tree_depth = Column(Integer, nullable=False, default=0)
+    state_json = Column(Text, nullable=False, default="{}")
+    hardware_json = Column(Text, nullable=False, default="{}")
 
 
 class RecoveryAttempt(Base):

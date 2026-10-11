@@ -38,7 +38,7 @@ def list_audit_events(
             .all()
         )
     except SQLAlchemyError as exc:
-        raise HTTPException(status_code=500, detail=f"Database error: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     total_pages = max(1, (total + page_size - 1) // page_size)
     items = [AuditEventOut.model_validate(r) for r in rows]
@@ -55,7 +55,10 @@ def list_audit_events(
 def create_audit_event(
     payload: AuditEventCreate, db: Session = Depends(get_db)
 ) -> AuditEventOut:
-    existing = db.query(models.AuditEvent).filter(models.AuditEvent.id == payload.id).first()
+    try:
+        existing = db.query(models.AuditEvent).filter(models.AuditEvent.id == payload.id).first()
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
     if existing:
         raise HTTPException(status_code=409, detail=f"Audit event '{payload.id}' already exists")
 
@@ -76,6 +79,6 @@ def create_audit_event(
         db.refresh(row)
     except SQLAlchemyError as exc:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {exc}") from exc
+        raise HTTPException(status_code=500, detail="Database error occurred") from exc
 
     return AuditEventOut.model_validate(row)

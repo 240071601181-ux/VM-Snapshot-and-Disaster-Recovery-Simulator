@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
 from main import app
@@ -16,10 +17,20 @@ from main import app
 
 def _make_test_client(db_url: str = "sqlite:///:memory:") -> tuple:
     """Create a fresh engine, session factory, and patched TestClient."""
-    engine = create_engine(
-        db_url,
-        connect_args={"check_same_thread": False},
-    )
+    if db_url == "sqlite:///:memory:":
+        # StaticPool is required so all sessions share the same single
+        # in-memory SQLite connection; otherwise each new connection gets a
+        # fresh empty database ("no such table" errors).
+        engine = create_engine(
+            db_url,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        engine = create_engine(
+            db_url,
+            connect_args={"check_same_thread": False},
+        )
     TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     # Create tables on the fresh engine

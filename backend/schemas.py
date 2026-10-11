@@ -28,6 +28,7 @@ def _utcnow() -> str:
 EnvironmentType = Literal["production", "staging", "development"]
 SeverityType = Literal["info", "warning", "error", "success"]
 RecoveryStatusType = Literal["initiated", "in_progress", "succeeded", "failed"]
+PowerStateType = Literal["running", "stopped", "paused", "crashed", "corrupted"]
 
 AuditEventTypeStr = Literal[
     "vm_created",
@@ -73,6 +74,7 @@ class VMRecordCreate(BaseModel):
     environment: EnvironmentType
     os: str = ""
     hardware: HardwareSchema
+    power_state: PowerStateType = "stopped"
     active_snapshot_id: Optional[str] = None
     snapshot_count: int = Field(default=0, ge=0)
     created_at: str = Field(default_factory=_utcnow)
@@ -111,6 +113,7 @@ class VMRecordOut(BaseModel):
     environment: str
     os: str
     hardware: dict[str, Any]
+    power_state: str = "stopped"
     active_snapshot_id: Optional[str]
     snapshot_count: int
     created_at: str
@@ -185,6 +188,61 @@ class PaginatedSnapshotResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class SnapshotTakeRequest(BaseModel):
+    """Body for POST /api/vms/{vm_id}/snapshots – capture current simulated state."""
+
+    name: str
+    description: str = ""
+    is_consistent: bool = True
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Snapshot name cannot be blank")
+        return v.strip()
+
+
+class SnapshotRestoreRequest(BaseModel):
+    """Body for POST /api/snapshots/{snapshot_id}/restore."""
+
+    vm_id: str
+
+    @field_validator("vm_id")
+    @classmethod
+    def vm_id_not_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("vm_id cannot be blank")
+        return v.strip()
+
+
+class PowerStateDiff(BaseModel):
+    snapshot: str
+    current: str
+    changed: bool
+
+
+class HardwareFieldDiff(BaseModel):
+    snapshot: int
+    current: int
+    changed: bool
+
+
+class HardwareDiffOut(BaseModel):
+    cpu_cores: HardwareFieldDiff
+    memory_mb: HardwareFieldDiff
+    disk_size_gb: HardwareFieldDiff
+    has_changes: bool
+
+
+class SnapshotDiffOut(BaseModel):
+    snapshot_id: str
+    vm_id: str
+    power_state_diff: PowerStateDiff
+    hardware_diff: HardwareDiffOut
+    has_any_differences: bool
 
 
 # ---------------------------------------------------------------------------

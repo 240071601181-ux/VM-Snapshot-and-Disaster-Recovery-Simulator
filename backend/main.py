@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import init_db
 from routers import dashboard, vms, snapshots, recovery, audit
@@ -62,6 +63,29 @@ async def validation_exception_handler(
     return JSONResponse(
         status_code=422,
         content={"error": "validation_error", "detail": detail},
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(
+    request: Request, exc: SQLAlchemyError
+) -> JSONResponse:
+    """Catch any SQLAlchemyError that escapes per-endpoint handling.
+
+    Returns a safe JSON envelope without leaking internal DB details.
+    """
+    return JSONResponse(
+        status_code=500,
+        content={"error": "database_error", "detail": "Database error occurred"},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Final safety net: always return JSON, never plain-text or tracebacks."""
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "detail": "Internal server error"},
     )
 
 
